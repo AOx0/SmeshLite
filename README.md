@@ -160,6 +160,11 @@ tests/         # Pytest test suite
 
 ## 📜 Source
 
-The original Scratch 3.0 game lives in `ULTRA MEGA SMESH/project.json`. It's only
-needed if you want to add new characters or dig into the original game logic —
-run `format_json.py` to produce a readable `project_formatted.json`.
+This project is a port of the original Scratch 3.0 game **ULTRA MEGA SMESH**:
+
+- Play it on itch.io: [ariastroki2.itch.io/smesh](https://ariastroki2.itch.io/smesh)
+- Original Scratch project (source): [scratch.mit.edu/projects/922804265](https://scratch.mit.edu/projects/922804265)
+
+You're welcome to download the Scratch project and do whatever with it (non-commercial purposes) and proper credit is given. 
+
+**This is a gymnasium environment for machine learning research.**
