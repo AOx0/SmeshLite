@@ -1,0 +1,527 @@
+{
+  "name": "Minium",
+  "stats": {
+    "size": 40.0,
+    "weight": 1.0,
+    "charge_speed": 0.05,
+    "run_anim_delay": 2
+  },
+  "physics": {
+    "gravity": 0.7,
+    "fast_fall_gravity": 1.1,
+    "jump_speed": 12.0,
+    "wall_bounce_x": 15.0,
+    "run_accel": 2.0,
+    "speed_decay": 0.85,
+    "max_speed": 200.0,
+    "max_fall_speed": 20.0
+  },
+  "attacks": [
+    {
+      "name": "nair",
+      "frame_data": [
+        3,
+        13,
+        15,
+        22
+      ],
+      "damage": 10.0,
+      "knockback": 0.7,
+      "multihit": false
+    },
+    {
+      "name": "nsmash",
+      "frame_data": [
+        10,
+        14,
+        17,
+        23
+      ],
+      "damage": 18.0,
+      "knockback": 1.0,
+      "multihit": false
+    },
+    {
+      "name": "fair",
+      "frame_data": [
+        2,
+        5,
+        8,
+        13
+      ],
+      "damage": 7.0,
+      "knockback": 0.5,
+      "multihit": false
+    },
+    {
+      "name": "fsmash",
+      "frame_data": [
+        2,
+        6,
+        10,
+        14
+      ],
+      "damage": 15.0,
+      "knockback": 1.0,
+      "multihit": false
+    },
+    {
+      "name": "uair",
+      "frame_data": [
+        4,
+        8,
+        12,
+        20
+      ],
+      "damage": 8.0,
+      "knockback": 0.5,
+      "multihit": true
+    }
+  ],
+  "costumes": [
+    {
+      "name": "Minium_hitbox",
+      "file": "minium_hitbox.svg",
+      "rc_x": 77.1,
+      "rc_y": 134.2
+    },
+    {
+      "name": "Minium_semisolidHitbox",
+      "file": "minium_semisolid_hb.svg",
+      "rc_x": 77.1,
+      "rc_y": -113.8
+    },
+    {
+      "name": "Minium_smashHitbox",
+      "file": "minium_smash_hb.svg",
+      "rc_x": 77.1,
+      "rc_y": -109.8
+    },
+    {
+      "name": "Idle",
+      "file": "idle.svg",
+      "rc_x": 77.0,
+      "rc_y": 146.9
+    },
+    {
+      "name": "run",
+      "file": "run1.svg",
+      "rc_x": 147.8,
+      "rc_y": 142.8
+    },
+    {
+      "name": "run2",
+      "file": "run2.svg",
+      "rc_x": 88.8,
+      "rc_y": 135.3
+    },
+    {
+      "name": "run3",
+      "file": "run3.svg",
+      "rc_x": 121.6,
+      "rc_y": 165.3
+    },
+    {
+      "name": "run4",
+      "file": "run4.svg",
+      "rc_x": 160.9,
+      "rc_y": 164.7
+    },
+    {
+      "name": "run5",
+      "file": "run5.svg",
+      "rc_x": 163.1,
+      "rc_y": 148.8
+    },
+    {
+      "name": "run6",
+      "file": "run6.svg",
+      "rc_x": 97.1,
+      "rc_y": 136.8
+    },
+    {
+      "name": "run7",
+      "file": "run7.svg",
+      "rc_x": 113.7,
+      "rc_y": 153.3
+    },
+    {
+      "name": "run8",
+      "file": "run8.svg",
+      "rc_x": 158.8,
+      "rc_y": 164.8
+    },
+    {
+      "name": "jump",
+      "file": "jump.svg",
+      "rc_x": 119.5,
+      "rc_y": 163.9
+    },
+    {
+      "name": "fall",
+      "file": "fall.svg",
+      "rc_x": 157.2,
+      "rc_y": 150.8
+    },
+    {
+      "name": "attack1-1",
+      "file": "attack1_1.svg",
+      "rc_x": 67.3,
+      "rc_y": 163.8
+    },
+    {
+      "name": "attack1-2",
+      "file": "attack1_2.svg",
+      "rc_x": 58.0,
+      "rc_y": 227.1
+    },
+    {
+      "name": "attack1-3",
+      "file": "attack1_3.svg",
+      "rc_x": 64.7,
+      "rc_y": 229.1
+    },
+    {
+      "name": "attack1-4",
+      "file": "attack1_4.svg",
+      "rc_x": 86.7,
+      "rc_y": 171.6
+    },
+    {
+      "name": "attack1-5",
+      "file": "attack1_5.svg",
+      "rc_x": 147.4,
+      "rc_y": 131.5
+    },
+    {
+      "name": "attack1hitbox1",
+      "file": "attack1_hb1.svg",
+      "rc_x": 0.0,
+      "rc_y": 0.0
+    },
+    {
+      "name": "attack1hitbox2",
+      "file": "attack1_hb2.svg",
+      "rc_x": 0.0,
+      "rc_y": 0.0
+    },
+    {
+      "name": "attack1hitbox3",
+      "file": "attack1_hb3.svg",
+      "rc_x": 0.0,
+      "rc_y": 0.0
+    },
+    {
+      "name": "attack1hitbox4",
+      "file": "attack1_hb4.svg",
+      "rc_x": -47.5,
+      "rc_y": 52.3
+    },
+    {
+      "name": "attack1hitbox5",
+      "file": "attack1_hb5.svg",
+      "rc_x": 0.0,
+      "rc_y": 0.0
+    },
+    {
+      "name": "attack2-1",
+      "file": "attack2_1.svg",
+      "rc_x": 96.1,
+      "rc_y": 92.4
+    },
+    {
+      "name": "attack2-2",
+      "file": "attack2_2.svg",
+      "rc_x": 96.1,
+      "rc_y": 186.9
+    },
+    {
+      "name": "attack2-3",
+      "file": "attack2_3.svg",
+      "rc_x": 96.1,
+      "rc_y": 137.9
+    },
+    {
+      "name": "attack2-4",
+      "file": "attack2_4.svg",
+      "rc_x": 96.1,
+      "rc_y": 93.9
+    },
+    {
+      "name": "attack2-5",
+      "file": "attack2_5.svg",
+      "rc_x": 96.1,
+      "rc_y": 88.4
+    },
+    {
+      "name": "attack2hitbox1",
+      "file": "attack2_hb1.svg",
+      "rc_x": 0.0,
+      "rc_y": 0.0
+    },
+    {
+      "name": "attack2hitbox2",
+      "file": "attack2_hb2.svg",
+      "rc_x": 49.5,
+      "rc_y": 188.9
+    },
+    {
+      "name": "attack2hitbox3",
+      "file": "attack2_hb3.svg",
+      "rc_x": 49.5,
+      "rc_y": 137.9
+    },
+    {
+      "name": "attack2hitbox4",
+      "file": "attack2_hb4.svg",
+      "rc_x": 0.0,
+      "rc_y": 0.0
+    },
+    {
+      "name": "attack2hitbox5",
+      "file": "attack2_hb5.svg",
+      "rc_x": 0.0,
+      "rc_y": 0.0
+    },
+    {
+      "name": "attack3-1",
+      "file": "attack3_1.svg",
+      "rc_x": 106.4,
+      "rc_y": 100.7
+    },
+    {
+      "name": "attack3-2",
+      "file": "attack3_2.svg",
+      "rc_x": 108.5,
+      "rc_y": 104.6
+    },
+    {
+      "name": "attack3-3",
+      "file": "attack3_3.svg",
+      "rc_x": 111.5,
+      "rc_y": 113.3
+    },
+    {
+      "name": "attack3-4",
+      "file": "attack3_4.svg",
+      "rc_x": 115.8,
+      "rc_y": 117.4
+    },
+    {
+      "name": "attack3-5",
+      "file": "attack3_5.svg",
+      "rc_x": 106.4,
+      "rc_y": 100.7
+    },
+    {
+      "name": "attack3hitbox1",
+      "file": "attack3_hb1.svg",
+      "rc_x": 0.0,
+      "rc_y": 0.0
+    },
+    {
+      "name": "attack3hitbox2",
+      "file": "attack3_hb2.svg",
+      "rc_x": 34.0,
+      "rc_y": 34.0
+    },
+    {
+      "name": "attack3hitbox3",
+      "file": "attack3_hb3.svg",
+      "rc_x": 103.5,
+      "rc_y": 110.5
+    },
+    {
+      "name": "attack3hitbox4",
+      "file": "attack3_hb4.svg",
+      "rc_x": 103.5,
+      "rc_y": 110.5
+    },
+    {
+      "name": "attack3hitbox5",
+      "file": "attack3_hb5.svg",
+      "rc_x": 38.5,
+      "rc_y": 38.5
+    },
+    {
+      "name": "attack4-1",
+      "file": "attack4_1.svg",
+      "rc_x": 192.7,
+      "rc_y": 149.1
+    },
+    {
+      "name": "attack4-2",
+      "file": "attack4_2.svg",
+      "rc_x": 107.7,
+      "rc_y": 216.2
+    },
+    {
+      "name": "attack4-3",
+      "file": "attack4_3.svg",
+      "rc_x": 107.7,
+      "rc_y": 144.9
+    },
+    {
+      "name": "attack4-4",
+      "file": "attack4_4.svg",
+      "rc_x": 107.7,
+      "rc_y": 144.9
+    },
+    {
+      "name": "attack4-5",
+      "file": "attack4_5.svg",
+      "rc_x": 107.7,
+      "rc_y": 144.9
+    },
+    {
+      "name": "attack4hitbox1",
+      "file": "attack4_hb1.svg",
+      "rc_x": 0.0,
+      "rc_y": 0.0
+    },
+    {
+      "name": "attack4hitbox2",
+      "file": "attack4_hb2.svg",
+      "rc_x": -49.6,
+      "rc_y": 135.1
+    },
+    {
+      "name": "attack4hitbox3",
+      "file": "attack4_hb3.svg",
+      "rc_x": -97.7,
+      "rc_y": 90.8
+    },
+    {
+      "name": "attack4hitbox4",
+      "file": "attack4_hb4.svg",
+      "rc_x": -87.2,
+      "rc_y": 78.8
+    },
+    {
+      "name": "attack4hitbox5",
+      "file": "attack4_hb5.svg",
+      "rc_x": 0.0,
+      "rc_y": 0.0
+    },
+    {
+      "name": "costume1",
+      "file": "attack5_1.svg",
+      "rc_x": 169.5,
+      "rc_y": 92.4
+    },
+    {
+      "name": "costume2",
+      "file": "attack5_2.svg",
+      "rc_x": 169.5,
+      "rc_y": 92.4
+    },
+    {
+      "name": "costume3",
+      "file": "attack5_3.svg",
+      "rc_x": 169.5,
+      "rc_y": 92.4
+    },
+    {
+      "name": "costume4",
+      "file": "attack5_4.svg",
+      "rc_x": 169.5,
+      "rc_y": 92.4
+    },
+    {
+      "name": "costume5",
+      "file": "attack5_5.svg",
+      "rc_x": 169.5,
+      "rc_y": 92.4
+    },
+    {
+      "name": "costume6",
+      "file": "attack5_hb1.svg",
+      "rc_x": 58.5,
+      "rc_y": -41.0
+    },
+    {
+      "name": "costume7",
+      "file": "attack5_hb2.svg",
+      "rc_x": 58.5,
+      "rc_y": -41.0
+    },
+    {
+      "name": "costume9",
+      "file": "attack5_hb3.svg",
+      "rc_x": 58.5,
+      "rc_y": -41.0
+    },
+    {
+      "name": "costume8",
+      "file": "attack5_hb4.svg",
+      "rc_x": 58.5,
+      "rc_y": -41.0
+    },
+    {
+      "name": "costume10",
+      "file": "attack5_hb5.svg",
+      "rc_x": 58.5,
+      "rc_y": -41.0
+    },
+    {
+      "name": "minium entrance 1",
+      "file": "entrance1.svg",
+      "rc_x": 101.5,
+      "rc_y": -131.0
+    },
+    {
+      "name": "minium entrance 2",
+      "file": "entrance2.svg",
+      "rc_x": 101.5,
+      "rc_y": -85.0
+    },
+    {
+      "name": "minium entrance 3",
+      "file": "entrance3.svg",
+      "rc_x": 101.5,
+      "rc_y": 19.1
+    },
+    {
+      "name": "minium entrance 4",
+      "file": "entrance4.svg",
+      "rc_x": 101.5,
+      "rc_y": 119.0
+    },
+    {
+      "name": "minium entrance 5",
+      "file": "entrance5.svg",
+      "rc_x": 101.5,
+      "rc_y": 149.0
+    },
+    {
+      "name": "minium entrance 6",
+      "file": "entrance6.svg",
+      "rc_x": 101.5,
+      "rc_y": 148.1
+    },
+    {
+      "name": "minium entrance 7",
+      "file": "entrance7.svg",
+      "rc_x": 103.5,
+      "rc_y": 148.1
+    },
+    {
+      "name": "minium entrance 8",
+      "file": "entrance8.svg",
+      "rc_x": 102.5,
+      "rc_y": 148.1
+    },
+    {
+      "name": "minium entrance 9",
+      "file": "entrance9.svg",
+      "rc_x": 102.5,
+      "rc_y": 146.9
+    },
+    {
+      "name": "minium entrance 10",
+      "file": "entrance10.svg",
+      "rc_x": 78.0,
+      "rc_y": 146.9
+    }
+  ]
+}
