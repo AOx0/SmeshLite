@@ -17,6 +17,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from smeshlite.core.sensors import RaycastSensor, RaycastResult
+
 
 # ---------------------------------------------------------------------------
 # InputState — the 4-button input buffer owned by each Character
@@ -57,6 +59,8 @@ class OpponentContext:
     in_air: bool
     action: int
     attack_num: int
+    action_frame: int
+    charge_amount: float
 
 
 @dataclass
@@ -85,6 +89,8 @@ class BrainContext:
     stage_x1: float = -700.0
     stage_x2: float = 700.0
     stage_y_floor: float = 0.0
+    # Sensors (only populated if the brain declares CharacterBrain.SENSORS)
+    sensors: dict[str, RaycastResult] = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -100,7 +106,18 @@ class CharacterBrain:
 
     ML agents should subclass this and use BrainContext features;
     rule-based or keyboard agents may ignore context entirely.
+
+    Subclasses placed in /agents are auto-discovered by
+    smeshlite.core.brain_registry.  Set BRAIN_NAME to control the display
+    name used by the registry; if left as None, the class name is used.
+
+    Set SENSORS to a tuple of RaycastSensor specs to have Character evaluate them
+    each tick and populate BrainContext.sensors (and the renderer's debug overlay).
+    Empty by default — zero cost for brains that don't use sensors.
     """
+
+    BRAIN_NAME: str | None = None
+    SENSORS: tuple[RaycastSensor, ...] = ()
 
     def think(self, context: BrainContext, out: InputState) -> None:
         """Write desired inputs for this frame into `out`."""
@@ -177,3 +194,49 @@ class ExternalBrain(CharacterBrain):
         out.right  = self.pending.right
         out.up     = self.pending.up
         out.attack = self.pending.attack
+
+
+# ---------------------------------------------------------------------------
+# Observation helpers — for ML brains that need the flat vector
+# Match.get_obs() / Character.obs_vector() would produce, reconstructed
+# purely from a BrainContext snapshot at inference time.
+# ---------------------------------------------------------------------------
+
+def _entity_obs(
+    x: float, y: float, vx: float, vy: float,
+    damage_pct: float, stocks: int, action: int, action_frame: int,
+    facing: float, in_air: bool, charge_amount: float,
+) -> list[float]:
+    return [
+        x, y, vx, vy,
+        damage_pct, float(stocks),
+        float(action), float(action_frame),
+        facing, float(in_air), charge_amount,
+    ]
+
+
+def brain_context_to_obs(ctx: BrainContext) -> list[float]:
+    """
+    Build the same flat observation vector as Match.get_obs(perspective) /
+    Character.obs_vector(), reconstructed from a BrainContext snapshot.
+
+    Order: [self: 11 floats] + [opponent_i: 11 floats for each opponent],
+    with per-entity field order matching Character.obs_vector():
+        [x, y, vx, vy, damage_pct, stocks, action, action_frame,
+         facing, in_air, charge_amount]
+
+    ML brains can call this in think() to feed a model trained against
+    SmeshLiteEnv's observation space (Box(22,) for 1v1).
+    """
+    obs = _entity_obs(
+        ctx.x, ctx.y, ctx.vx, ctx.vy,
+        ctx.damage_pct, ctx.stocks, ctx.action, ctx.action_frame,
+        ctx.facing, ctx.in_air, ctx.charge_amount,
+    )
+    for o in ctx.opponents:
+        obs.extend(_entity_obs(
+            o.x, o.y, o.vx, o.vy,
+            o.damage_pct, o.stocks, o.action, o.action_frame,
+            o.facing, o.in_air, o.charge_amount,
+        ))
+    return obs

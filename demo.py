@@ -17,23 +17,36 @@ from smeshlite.core.match import Match, MatchConfig
 from smeshlite.core.brain import PlayerInput
 from smeshlite.render.renderer import Renderer, SCREEN_W, SCREEN_H
 
+# Importa tus agentes aquí
+from agents  import chaser_bot, random_bot
+
+
 # Build match and wire PlayerInput brains
 config = MatchConfig(stocks=3, time_limit=7200)
 match = Match(config)
 match.reset(n_players=2)
 
+# Fijar cerebro del jugador 1 al input WASD
 match.characters[0].set_brain(PlayerInput(
     key_left=pygame.K_a,
     key_right=pygame.K_d,
     key_up=pygame.K_w,
     key_attack=pygame.K_s,
 ))
-match.characters[1].set_brain(PlayerInput(
-    key_left=pygame.K_LEFT,
-    key_right=pygame.K_RIGHT,
-    key_up=pygame.K_UP,
-    key_attack=pygame.K_DOWN,
-))
+
+# Fijar cerebro del jugador 2 al input ARROW KEYS
+# match.characters[1].set_brain(PlayerInput(
+#     key_left=pygame.K_LEFT,
+#     key_right=pygame.K_RIGHT,
+#     key_up=pygame.K_UP,
+#     key_attack=pygame.K_DOWN,
+# ))
+
+# Fijar cerebro del jugador a política RANDOM
+# match.characters[1].set_brain(random_bot.RandomBot())
+
+# Fijar cerebro del jugador a política de persecución simple
+match.characters[1].set_brain(chaser_bot.ChaserBot())
 
 renderer = Renderer(render_mode="human")
 renderer.render(match)   # force pygame init before event loop
@@ -122,9 +135,12 @@ while running:
         match.characters[0].set_brain(PlayerInput(
             pygame.K_a, pygame.K_d, pygame.K_w, pygame.K_s
         ))
+        '''
         match.characters[1].set_brain(PlayerInput(
             pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_DOWN
         ))
+        '''
+        match.characters[1].set_brain(chaser_bot())
 
     renderer.render(match)
 

@@ -124,6 +124,42 @@ For self-play or full multi-agent control, set custom brains directly via
 
 ---
 
+## 🧠 Custom brains via /agents
+
+Drop a Python file into the top-level `agents/` directory and SmeshLite
+will auto-discover any `CharacterBrain` subclass defined in it — no
+package registration needed.
+
+```python
+from smeshlite.core.match import Match, MatchConfig
+
+match = Match(MatchConfig())
+match.reset(n_players=2)
+
+# List discovered brains (scans agents/*.py)
+print(Match.list_available_brains())
+# -> ['Chaser Bot', 'Random Bot', 'SB3 Agent (template)']
+
+# Switch a character's brain at runtime — by name, class, or instance
+match.set_player_brain(1, "Chaser Bot")
+```
+
+See `agents/README.md` for the file convention (including the
+`BRAIN_NAME` class attribute) and example brains:
+
+- `agents/random_bot.py` — random-input baseline
+- `agents/chaser_bot.py` — simple rule-based opponent
+- `agents/sb3_template.py` — wraps a trained Stable-Baselines3 checkpoint,
+  using `brain_context_to_obs()` to reproduce the exact 22-float
+  observation `SmeshLiteEnv` produces.
+
+> **Note:** `SmeshLiteEnv.reset()` rewires `ExternalBrain` to *every*
+> character (so `step()` can drive player 0). If you call
+> `env.match.set_player_brain(...)` for self-play opponents, re-apply it
+> after each `reset()`.
+
+---
+
 ## 🧪 Running tests
 
 ```bash
@@ -150,6 +186,12 @@ smeshlite/
 └── render/
     ├── renderer.py           # Pygame renderer (human / rgb_array)
     └── sprite_loader.py        # SVG sprite loading
+
+agents/
+├── README.md            # /agents convention + examples
+├── random_bot.py         # baseline random-input brain
+├── chaser_bot.py          # rule-based "chase + attack" brain
+└── sb3_template.py        # Stable-Baselines3 checkpoint wrapper
 
 demo.py        # Player-controlled 2P sandbox
 format_json.py # Pretty-prints the original Scratch project.json for reference

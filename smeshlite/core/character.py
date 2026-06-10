@@ -104,6 +104,7 @@ from enum import Enum
 
 from smeshlite.data.character_def import CharacterDef, MINIUM_DEF
 from smeshlite.core.brain import InputState, BrainContext, OpponentContext, CharacterBrain
+from smeshlite.core.sensors import RaycastResult, evaluate_sensors
 
 
 class Action(Enum):
@@ -192,6 +193,10 @@ class Character:
         # Sprite loader (lazy, set on first render call)
         self._sprite_loader: object | None = None
 
+        # Last sensor readings (for the brain's SENSORS, if any); cached for the
+        # renderer's debug overlay
+        self._sensor_results: dict[str, RaycastResult] = {}
+
     # ------------------------------------------------------------------
     # Brain / input API
     # ------------------------------------------------------------------
@@ -202,6 +207,7 @@ class Character:
     def gather_input(self, opponents: list[Character], stage) -> None:
         """Ask brain to write into self._input.  Called by Match each tick."""
         if self._brain is not None:
+            self._update_sensors(stage)
             ctx = self._build_context(opponents, stage)
             self._brain.think(ctx, self._input)
 
@@ -219,13 +225,22 @@ class Character:
                     damage_pct=o.damage_pct, stocks=o.stocks,
                     facing=o.facing, in_air=o.in_air,
                     action=o.action.value, attack_num=o.attack_num,
+                    action_frame=o.action_frame, charge_amount=o.charge_amount,
                 )
                 for o in opponents
             ],
             stage_x1=-stage.kill_x,
             stage_x2=stage.kill_x,
             stage_y_floor=stage.platforms[0].y if stage.platforms else 0.0,
+            sensors=self._sensor_results,
         )
+
+    def _update_sensors(self, stage) -> None:
+        """Evaluate this character's brain's SENSORS (if any) against the stage."""
+        if self._brain is not None and self._brain.SENSORS:
+            self._sensor_results = evaluate_sensors(self._brain.SENSORS, self, stage)
+        elif self._sensor_results:
+            self._sensor_results = {}
 
     @property
     def sprite_loader(self):

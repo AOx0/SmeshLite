@@ -9,7 +9,9 @@ Collision model:
   - Semisolid platforms: only block from above (passthrough from sides/below)
 """
 from __future__ import annotations
+import math
 from smeshlite.data.stage_data import StageData, Platform
+from smeshlite.core.sensors import RaycastResult
 
 
 class Stage:
@@ -124,3 +126,62 @@ class Stage:
             x = self.kill_x - half_w
             vx = -bounce_speed
         return x, vx
+
+    # ------------------------------------------------------------------
+    # Raycast sensors
+    # ------------------------------------------------------------------
+
+    def raycast(self, ox: float, oy: float, dx: float, dy: float, max_dist: float) -> RaycastResult:
+        """
+        Cast a ray from (ox, oy) in direction (dx, dy) up to max_dist.
+
+        Hits platform top edges and the kill-zone boundary (the three segments a
+        character must cross to die: the left/right blast walls and the bottom).
+        Returns the closest hit, or hit=False with end at the max-range point.
+        """
+        mag = math.hypot(dx, dy)
+        if mag == 0.0:
+            dx, dy = 0.0, -1.0
+            mag = 1.0
+        dx, dy = dx / mag, dy / mag
+
+        segments = [(plat.x1, plat.y, plat.x2, plat.y) for plat in self.platforms]
+        kx, ky = self.kill_x, self.kill_y
+        segments.append((-kx, -ky, -kx, ky))   # left blast wall
+        segments.append(( kx, -ky,  kx, ky))   # right blast wall
+        segments.append((-kx, -ky,  kx, -ky))  # bottom blast floor
+
+        best_t = max_dist
+        hit = False
+        for ax, ay, bx, by in segments:
+            t = _ray_segment_intersect(ox, oy, dx, dy, ax, ay, bx, by)
+            if t is not None and 0.0 <= t < best_t:
+                best_t = t
+                hit = True
+
+        end = (ox + dx * best_t, oy + dy * best_t)
+        return RaycastResult(origin=(ox, oy), end=end, distance=best_t, max_dist=max_dist, hit=hit)
+
+
+def _ray_segment_intersect(
+    ox: float, oy: float, dx: float, dy: float,
+    ax: float, ay: float, bx: float, by: float,
+) -> float | None:
+    """
+    Intersect ray (origin (ox,oy), direction (dx,dy), unit length) with segment A-B.
+    Returns the ray parameter t (distance along the ray) if it hits within the
+    segment, else None.
+    """
+    ex, ey = bx - ax, by - ay
+    diffx, diffy = ax - ox, ay - oy
+
+    det = ex * dy - ey * dx
+    if det == 0.0:
+        return None  # parallel
+
+    t = (ex * diffy - ey * diffx) / det
+    s = (dx * diffy - dy * diffx) / det
+
+    if t >= 0.0 and 0.0 <= s <= 1.0:
+        return t
+    return None

@@ -26,6 +26,8 @@ SEMISOLID_COLOR  = (120, 120, 120)
 PLAYER_COLORS    = [(240, 240, 240), (160, 160, 160), (100, 200, 100), (200, 100, 100)]
 HUD_COLOR        = (200, 200, 200)
 HITBOX_COLOR     = (255, 60,  60)    # debug hitbox overlay (semi-transparent)
+SENSOR_HIT_COLOR = (255, 220, 60)    # sensor ray that hit something
+SENSOR_MISS_COLOR = (70, 70, 90)     # sensor ray with no hit
 
 
 def _to_screen(x: float, y: float) -> tuple[int, int]:
@@ -77,6 +79,7 @@ class Renderer:
         for i, char in enumerate(match.characters):
             sx, sy = _to_screen(char.x, char.y)
             self._draw_character(screen, char, i, sx, sy)
+            self._draw_sensors(screen, char)
 
         self._draw_hud(screen, match)
 
@@ -136,6 +139,19 @@ class Renderer:
         vsx = sx + int(char.vx * PIXELS_PER_UNIT * 2)
         vsy = sy - int(char.vy * PIXELS_PER_UNIT * 2)
         pg.draw.line(screen, (80, 80, 200), (sx, sy), (vsx, vsy), 1)
+
+    # ------------------------------------------------------------------
+
+    def _draw_sensors(self, screen, char) -> None:
+        """Debug overlay: draw each of the brain's RaycastSensor results as a line."""
+        pg = self._pygame
+        for result in char._sensor_results.values():
+            start = _to_screen(*result.origin)
+            end = _to_screen(*result.end)
+            color = SENSOR_HIT_COLOR if result.hit else SENSOR_MISS_COLOR
+            pg.draw.line(screen, color, start, end, 1)
+            if result.hit:
+                pg.draw.circle(screen, color, end, 3)
 
     # ------------------------------------------------------------------
 

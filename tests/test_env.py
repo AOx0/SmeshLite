@@ -208,6 +208,79 @@ def test_character_set_brain_and_gather():
 
 
 # -----------------------------------------------------------------------
+# brain_context_to_obs parity with Match.get_obs / obs_vector
+# -----------------------------------------------------------------------
+
+def test_brain_context_to_obs_matches_get_obs():
+    from smeshlite.core.brain import brain_context_to_obs
+
+    config = MatchConfig()
+    match = Match(config)
+    match.reset(n_players=2)
+    match.tick()  # advance past spawn so values are non-trivial
+
+    for perspective in range(2):
+        opponents = [c for c in match.characters if c.id != perspective]
+        ctx = match.characters[perspective]._build_context(opponents, match.stage)
+        obs_from_ctx = brain_context_to_obs(ctx)
+        obs_from_match = match.get_obs(perspective=perspective)
+        assert obs_from_ctx == pytest.approx(obs_from_match)
+
+
+def test_brain_context_opponent_has_action_frame_and_charge():
+    config = MatchConfig()
+    match = Match(config)
+    match.reset(n_players=2)
+    opponents = [match.characters[1]]
+    ctx = match.characters[0]._build_context(opponents, match.stage)
+    opp_ctx = ctx.opponents[0]
+    assert opp_ctx.action_frame == match.characters[1].action_frame
+    assert opp_ctx.charge_amount == match.characters[1].charge_amount
+
+
+# -----------------------------------------------------------------------
+# Match.set_player_brain — runtime brain switching
+# -----------------------------------------------------------------------
+
+def test_set_player_brain_with_instance():
+    match = Match(MatchConfig())
+    match.reset(n_players=2)
+    brain = ExternalBrain()
+    result = match.set_player_brain(1, brain)
+    assert result is brain
+    assert match.characters[1]._brain is brain
+
+
+def test_set_player_brain_with_class():
+    match = Match(MatchConfig())
+    match.reset(n_players=2)
+    result = match.set_player_brain(1, ExternalBrain)
+    assert isinstance(result, ExternalBrain)
+    assert match.characters[1]._brain is result
+
+
+def test_set_player_brain_with_string_name():
+    match = Match(MatchConfig())
+    match.reset(n_players=2)
+    result = match.set_player_brain(1, "Chaser Bot")
+    assert result.__class__.__name__ == "ChaserBot"
+    assert match.characters[1]._brain is result
+
+
+def test_set_player_brain_invalid_type_raises():
+    match = Match(MatchConfig())
+    match.reset(n_players=2)
+    with pytest.raises(TypeError):
+        match.set_player_brain(1, 12345)
+
+
+def test_list_available_brains_includes_examples():
+    names = Match.list_available_brains(refresh=True)
+    assert "Random Bot" in names
+    assert "Chaser Bot" in names
+
+
+# -----------------------------------------------------------------------
 # Gymnasium API compliance
 # -----------------------------------------------------------------------
 

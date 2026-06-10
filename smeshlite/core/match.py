@@ -15,6 +15,8 @@ from dataclasses import dataclass, field
 
 from smeshlite.core.character import Character, Action
 from smeshlite.core.stage import Stage
+from smeshlite.core.brain import CharacterBrain
+from smeshlite.core import brain_registry
 from smeshlite.data.stage_data import DEFAULT_STAGE, StageData
 from smeshlite.data.character_def import CharacterDef, MINIUM_DEF
 
@@ -152,3 +154,40 @@ class Match:
     @staticmethod
     def obs_size(n_players: int = 2) -> int:
         return Character.obs_size() * n_players
+
+    # ------------------------------------------------------------------
+    # Brain management
+    # ------------------------------------------------------------------
+
+    def set_player_brain(
+        self,
+        player_id: int,
+        brain: CharacterBrain | type[CharacterBrain] | str,
+    ) -> CharacterBrain:
+        """
+        Assign a brain to characters[player_id] at runtime.
+
+        `brain` may be:
+          - a CharacterBrain instance (used as-is)
+          - a CharacterBrain subclass (instantiated with no args)
+          - a string name resolved via the /agents brain registry
+
+        Returns the brain instance that was set.
+        """
+        if isinstance(brain, str):
+            brain = brain_registry.create_brain(brain)
+        elif isinstance(brain, type) and issubclass(brain, CharacterBrain):
+            brain = brain()
+        elif not isinstance(brain, CharacterBrain):
+            raise TypeError(
+                f"brain must be a CharacterBrain instance, subclass, or "
+                f"registry name string, got {type(brain)!r}"
+            )
+
+        self.characters[player_id].set_brain(brain)
+        return brain
+
+    @staticmethod
+    def list_available_brains(refresh: bool = False) -> list[str]:
+        """List display names of all brains discovered in /agents."""
+        return brain_registry.list_brains(refresh=refresh)

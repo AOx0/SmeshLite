@@ -48,7 +48,10 @@ class SmeshLiteEnv(gym.Env):
             if terminated or truncated:
                 obs, info = env.reset()
 
-    For self-play, set brains on both characters via match.characters[i].set_brain(...).
+    For self-play, set brains on both characters via match.characters[i].set_brain(...),
+    or match.set_player_brain(i, "BrainName") to pick from /agents. Note this must be
+    re-applied after each reset(), since reset() rewires ExternalBrain to every character
+    (required so step() can drive player 0).
     """
 
     metadata = {"render_modes": ["none", "human", "rgb_array"]}
