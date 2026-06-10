@@ -70,6 +70,12 @@ attack/hitbox system for the **MINIUM** character, and exposes it both as:
    pip install -e ".[render,train]"
    ```
 
+   For development (running tests, the `gymdemo.ipynb` notebook):
+
+   ```bash
+   pip install -e ".[dev]"
+   ```
+
 ---
 
 ## 🎮 Playing the demo
@@ -163,7 +169,7 @@ See `agents/README.md` for the file convention (including the
 ## 🧪 Running tests
 
 ```bash
-pip install -e ".[render]"
+pip install -e ".[render,dev]"
 pytest
 ```
 
