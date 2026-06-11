@@ -226,6 +226,7 @@ class Character:
                     facing=o.facing, in_air=o.in_air,
                     action=o.action.value, attack_num=o.attack_num,
                     action_frame=o.action_frame, charge_amount=o.charge_amount,
+                    invincibility=o.invincibility,
                 )
                 for o in opponents
             ],

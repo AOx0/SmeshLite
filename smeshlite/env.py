@@ -1,8 +1,13 @@
 """
-SmeshLiteEnv — Gymnasium environment wrapping the SmeshLite match engine.
+SmeshLiteEnv -- Gymnasium environment wrapping the SmeshLite match engine.
 
-Observation space (flat float32 vector):
-  [self: 11 floats] + [opponent: 11 floats] = 22 floats
+Observation modes:
+  obs_mode="minimal" (default): 22-float vector (11 per player), same as
+      Character.obs_vector(): [x, y, vx, vy, damage_pct, stocks, action,
+      action_frame, facing, in_air, charge_amount]
+  obs_mode="full": 53-float vector (1v1, max_sensors=8). Includes invincibility,
+      stage geometry, and sensor raycast results per slot.
+      See brain.brain_context_to_full_obs() docstring for layout.
 
 Action space (MultiBinary(4)):
   [left, right, up, attack]
@@ -14,9 +19,9 @@ Reward (default, configurable via reward_config):
   -1.0                  on being KO'd
 
 render_mode:
-  "none"      — headless (fastest, for training)
-  "human"     — opens a Pygame window
-  "rgb_array" — returns RGB array (for recording)
+  "none"      -- headless (fastest, for training)
+  "human"     -- opens a Pygame window
+  "rgb_array" -- returns RGB array (for recording)
 """
 from __future__ import annotations
 
@@ -25,13 +30,16 @@ import gymnasium as gym
 from gymnasium import spaces
 
 from smeshlite.core.match import Match, MatchConfig
-from smeshlite.core.brain import ExternalBrain, InputState
+from smeshlite.core.brain import (
+    ExternalBrain, InputState, brain_context_to_full_obs,
+)
+from smeshlite.core.brain import full_obs_size as _full_obs_size
 from smeshlite.data.stage_data import DEFAULT_STAGE, StageData
 
 
 _OBS_LOW  = -2000.0
 _OBS_HIGH =  2000.0
-_OBS_SIZE = 22   # 11 floats × 2 players
+_OBS_SIZE = 22   # 11 floats x 2 players (minimal mode)
 
 
 class SmeshLiteEnv(gym.Env):
@@ -59,7 +67,9 @@ class SmeshLiteEnv(gym.Env):
     def __init__(
         self,
         render_mode: str = "none",
+        obs_mode: str = "minimal",
         n_players: int = 2,
+        max_sensors: int = 8,
         stocks: int = 3,
         time_limit: int = 7200,
         stage_data: StageData | None = None,
@@ -72,9 +82,13 @@ class SmeshLiteEnv(gym.Env):
         assert render_mode in self.metadata["render_modes"], \
             f"render_mode must be one of {self.metadata['render_modes']}"
         assert n_players >= 1, "n_players must be >= 1"
+        assert obs_mode in ("minimal", "full"), \
+            f"obs_mode must be 'minimal' or 'full', got {obs_mode!r}"
 
         self.render_mode = render_mode
+        self.obs_mode = obs_mode
         self.n_players = n_players
+        self.max_sensors = max_sensors
         self._reward_cfg = reward_config or {}
 
         config = MatchConfig(
@@ -86,7 +100,10 @@ class SmeshLiteEnv(gym.Env):
         )
         self.match = Match(config)
 
-        obs_size = Match.obs_size(n_players)
+        if obs_mode == "minimal":
+            obs_size = Match.obs_size(n_players)
+        elif obs_mode == "full":
+            obs_size = _full_obs_size(n_players, max_sensors)
         self.observation_space = spaces.Box(
             low=_OBS_LOW, high=_OBS_HIGH,
             shape=(obs_size,), dtype=np.float32,
@@ -188,10 +205,19 @@ class SmeshLiteEnv(gym.Env):
     # ------------------------------------------------------------------
 
     def _get_obs(self) -> np.ndarray:
-        return np.array(
-            self.match.get_obs(perspective=0),
-            dtype=np.float32,
-        )
+        if self.obs_mode == "minimal":
+            return np.array(
+                self.match.get_obs(perspective=0),
+                dtype=np.float32,
+            )
+        else:  # "full"
+            char = self.match.characters[0]
+            opponents = [c for c in self.match.characters if c.id != 0]
+            ctx = char._build_context(opponents, self.match.stage)
+            return np.array(
+                brain_context_to_full_obs(ctx, self.max_sensors),
+                dtype=np.float32,
+            )
 
     def _compute_reward(
         self,

@@ -61,6 +61,7 @@ class OpponentContext:
     attack_num: int
     action_frame: int
     charge_amount: float
+    invincibility: int = 0
 
 
 @dataclass
@@ -243,4 +244,79 @@ def brain_context_to_obs(ctx: BrainContext) -> list[float]:
             o.damage_pct, o.stocks, o.action, o.action_frame,
             o.facing, o.in_air, o.charge_amount,
         ))
+    return obs
+
+
+# ---------------------------------------------------------------------------
+# Full observation helpers — extended BrainContext serialization
+# ---------------------------------------------------------------------------
+
+_MAX_SENSORS: int = 8
+
+
+def _full_entity_obs(
+    x: float, y: float, vx: float, vy: float,
+    damage_pct: float, stocks: int, action: int, action_frame: int,
+    facing: float, in_air: bool, charge_amount: float, invincibility: float,
+) -> list[float]:
+    return [
+        x, y, vx, vy,
+        damage_pct, float(stocks),
+        float(action), float(action_frame),
+        facing, float(in_air), charge_amount, invincibility,
+    ]
+
+
+def full_obs_size(n_players: int = 2, max_sensors: int = _MAX_SENSORS) -> int:
+    """Return the flat observation size for the 'full' obs mode."""
+    return 12 * n_players + 5 + 3 * max_sensors
+
+
+def brain_context_to_full_obs(
+    ctx: BrainContext, max_sensors: int = _MAX_SENSORS
+) -> list[float]:
+    """
+    Build an extended observation vector from a BrainContext snapshot.
+
+    Layout (for 1v1, max_sensors=8):
+      [self: 12 floats] + [opponent: 12 floats] + [stage: 5 floats]
+      + [sensors: 3 * max_sensors floats]
+      = 53 floats
+
+    Per-entity fields (12 each):
+      [x, y, vx, vy, damage_pct, stocks, action, action_frame,
+       facing, in_air, charge_amount, invincibility]
+
+    Stage fields (5):
+      [stage_x1, stage_x2, stage_y_floor,
+       stage_platform_x1, stage_platform_x2]
+
+    Sensor fields (3 per slot, max_sensors slots):
+      [distance, hit (0/1), value]
+      Padded with zeros for unused slots.
+    """
+    obs = _full_entity_obs(
+        ctx.x, ctx.y, ctx.vx, ctx.vy,
+        ctx.damage_pct, ctx.stocks, ctx.action, ctx.action_frame,
+        ctx.facing, ctx.in_air, ctx.charge_amount,
+        float(ctx.invincibility),
+    )
+    for o in ctx.opponents:
+        obs.extend(_full_entity_obs(
+            o.x, o.y, o.vx, o.vy,
+            o.damage_pct, o.stocks, o.action, o.action_frame,
+            o.facing, o.in_air, o.charge_amount,
+            float(o.invincibility),
+        ))
+    # Stage
+    obs.extend([
+        ctx.stage_x1, ctx.stage_x2, ctx.stage_y_floor,
+        ctx.stage_platform_x1, ctx.stage_platform_x2,
+    ])
+    # Sensors (fixed-size, padded)
+    sensor_list = list(ctx.sensors.values())[:max_sensors]
+    for s in sensor_list:
+        obs.extend([s.distance, float(s.hit), s.value])
+    for _ in range(max_sensors - len(sensor_list)):
+        obs.extend([0.0, 0.0, 0.0])
     return obs
