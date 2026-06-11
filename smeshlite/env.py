@@ -1,21 +1,21 @@
 """
 SmeshLiteEnv -- Gymnasium environment wrapping the SmeshLite match engine.
 
-Observation modes:
-  obs_mode="minimal" (default): 22-float vector (11 per player), same as
-      Character.obs_vector(): [x, y, vx, vy, damage_pct, stocks, action,
-      action_frame, facing, in_air, charge_amount]
+Observation mode (default: full):
   obs_mode="full": 53-float vector (1v1, max_sensors=8). Includes invincibility,
       stage geometry, and sensor raycast results per slot.
       See brain.brain_context_to_full_obs() docstring for layout.
+  obs_mode="minimal": 22-float vector (11 per player), same as
+      Character.obs_vector(): [x, y, vx, vy, damage_pct, stocks, action,
+      action_frame, facing, in_air, charge_amount]
 
-Action modes:
-  action_mode="single" (default): step(action) takes a single 4-element array
-      for player 0. Other players idle (or use opponent_brain).
+Action mode (default: multi):
   action_mode="multi": step(actions) takes an (n_players, 4) array, one row
       per player. For self-play and multi-agent training.
+  action_mode="single": step(action) takes a single 4-element array
+      for player 0. Other players idle (or use opponent_brain).
 
-Action space (MultiBinary(4) or MultiBinary((n_players, 4))):
+Action space (MultiBinary((n_players, 4)) by default, or MultiBinary(4)):
   [left, right, up, attack]
   Matches the original 4-button scheme: A/D/W/S (or arrow keys).
 
@@ -71,29 +71,21 @@ class SmeshLiteEnv(gym.Env):
     """
     SmeshLite fighting game environment.
 
-    Example (single-agent vs idle)::
+    Example (default -- multi-agent, full obs)::
 
         env = SmeshLiteEnv()
         obs, info = env.reset()
         for _ in range(1000):
-            action = env.action_space.sample()
-            obs, reward, terminated, truncated, info = env.step(action)
+            actions = env.action_space.sample()  # shape (2, 4)
+            obs, reward, terminated, truncated, info = env.step(actions)
 
     Example (single-agent vs SmeshBot)::
 
-        env = SmeshLiteEnv(opponent_brain="Smesh Bot")
+        env = SmeshLiteEnv(action_mode="single", opponent_brain="Smesh Bot")
         obs, info = env.reset()
         for _ in range(1000):
             action = env.action_space.sample()
             obs, reward, terminated, truncated, info = env.step(action)
-
-    Example (multi-agent, both players driven by env)::
-
-        env = SmeshLiteEnv(action_mode="multi")
-        obs, info = env.reset()
-        for _ in range(1000):
-            actions = env.action_space.sample()  # shape (2, 4)
-            obs, reward, terminated, truncated, info = env.step(actions)
     """
 
     metadata = {"render_modes": ["none", "human", "rgb_array"]}
@@ -101,8 +93,8 @@ class SmeshLiteEnv(gym.Env):
     def __init__(
         self,
         render_mode: str = "none",
-        obs_mode: str = "minimal",
-        action_mode: str = "single",
+        obs_mode: str = "full",
+        action_mode: str = "multi",
         n_players: int = 2,
         max_sensors: int = 8,
         stocks: int = 3,

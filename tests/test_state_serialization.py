@@ -353,7 +353,8 @@ class TestEnvResetWithState:
     def test_reset_without_options_works_as_before(self):
         env = SmeshLiteEnv()
         obs, info = env.reset()
-        assert obs.shape == (22,)
+        assert obs.shape == (53,)  # default is full obs mode
+        env.close()
         env.close()
 
     def test_state_from_one_env_works_in_another(self):

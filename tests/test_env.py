@@ -20,18 +20,20 @@ from smeshlite.data.character_def import MINIUM_DEF
 def test_env_reset_returns_correct_obs_shape():
     env = SmeshLiteEnv()
     obs, info = env.reset()
-    assert obs.shape == (22,)
+    assert obs.shape == (53,)  # full obs mode is default
     assert obs.dtype == np.float32
+    env.close()
 
 
 def test_env_step_idle():
     env = SmeshLiteEnv()
     env.reset()
-    idle = [0, 0, 0, 0]   # left=0, right=0, up=0, attack=0
+    idle = [[0, 0, 0, 0], [0, 0, 0, 0]]  # multi action mode is default
     obs, reward, terminated, truncated, info = env.step(idle)
-    assert obs.shape == (22,)
+    assert obs.shape == (53,)
     assert isinstance(reward, float)
     assert not truncated
+    env.close()
 
 
 def test_env_random_agent_1000_steps():
@@ -40,7 +42,7 @@ def test_env_random_agent_1000_steps():
     for _ in range(1000):
         action = env.action_space.sample()
         obs, r, term, trunc, info = env.step(action)
-        assert obs.shape == (22,)
+        assert obs.shape == (53,)
         assert np.isfinite(r)
         if term or trunc:
             obs, _ = env.reset()
@@ -64,9 +66,10 @@ def test_env_terminates_on_ko():
 
 def test_action_space_is_multibinary():
     from gymnasium.spaces import MultiBinary
-    env = SmeshLiteEnv()
+    env = SmeshLiteEnv()  # default: multi mode
     assert isinstance(env.action_space, MultiBinary)
-    assert env.action_space.n == 4
+    assert env.action_space.shape == (2, 4)
+    env.close()
 
 
 # -----------------------------------------------------------------------
@@ -296,11 +299,10 @@ def test_headless_speed():
     import time
     env = SmeshLiteEnv()
     env.reset()
-    idle = [0, 0, 0, 0]
     N = 10_000
     t0 = time.perf_counter()
     for _ in range(N):
-        obs, r, term, trunc, info = env.step(idle)
+        obs, r, term, trunc, info = env.step(env.action_space.sample())
         if term or trunc:
             env.reset()
     elapsed = time.perf_counter() - t0
