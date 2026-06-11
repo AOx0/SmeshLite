@@ -52,7 +52,7 @@ def demo_character_brains_config(match):
     # Fijar cerebro del jugador a política de persecución simple
     match.characters[1].set_brain(chaser_bot.ChaserBot())
 
-demo_character_brains_config()
+demo_character_brains_config(match)
 
 renderer = Renderer(render_mode="human")
 renderer.render(match)   # force pygame init before event loop
@@ -111,12 +111,7 @@ while running:
                     paused = False
                 elif event.key == pygame.K_r:
                     match.reset(n_players=2)
-                    match.characters[0].set_brain(PlayerInput(
-                        pygame.K_a, pygame.K_d, pygame.K_w, pygame.K_s
-                    ))
-                    match.characters[1].set_brain(PlayerInput(
-                        pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_DOWN
-                    ))
+                    demo_character_brains_config(match)
                     paused = False
                 elif event.key == pygame.K_q:
                     running = False
@@ -138,7 +133,7 @@ while running:
         label  = f"P{winner}" if winner is not None else "tie"
         print(f"Match over — {label} wins | frame {match.frame}")
         match.reset(n_players=2)
-        demo_character_brains_config()
+        demo_character_brains_config(match)
 
     renderer.render(match)
 

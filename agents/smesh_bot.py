@@ -17,8 +17,16 @@ SmeshLite is a fixed-stage, step-based env. Kept from the original:
   - retreat from an invulnerable (respawning) opponent
   - fall-recovery: if airborne, falling, and no ground within reach, hold up+attack
     and steer back toward center
-Not ported: multi-target selection, the Level Ground Records pathfinding, and the
-exact original recovery-move sequencing.
+  - Groundpoint Exclusion Zone: how far the ground_ahead sensor probes for gaps
+  - Max Target X Offset: a "predictive aim" jitter added ahead of the opponent (in
+    their facing direction), re-rolled every Patience-in-secs window, so the bot
+    walks toward where the opponent is heading rather than straight at them
+  - Barrier Reaction Threshold: refuse to walk within this distance of the
+    platform's x1/x2 edges while pursuing, and treat falling below -threshold
+    as an extra fall-recovery trigger alongside the ground sensor
+Not ported: multi-target selection, the Level Ground Records pathfinding, the
+exact original recovery-move sequencing, and Allowed Player Offset (confirmed
+unused/dead in the original AI logic).
 """
 from __future__ import annotations
 
@@ -35,20 +43,18 @@ class SmeshBot(CharacterBrain):
 
     BRAIN_NAME = "Smesh Bot"
 
-    SENSORS = (
-        RaycastSensor(name="ground_ahead", origin=(40.0, 0.0), direction=(0.0, -1.0), max_dist=60.0),
-        RaycastSensor(name="ground_below", origin=(0.0, 0.0), direction=(0.0, -1.0), max_dist=150.0),
-    )
-
     def __init__(
         self,
-        aggressiveness_distance: float = 120.0,
-        attack_frequency: float = 0.15,
-        jump_frequency: float = 0.05,
-        ko_hunger: float = 90.0,
-        likes_charging_up_to: float = 60.0,
+        aggressiveness_distance: float = 150.0,
+        attack_frequency: float = 0.80,
+        jump_frequency: float = 0.50,
+        ko_hunger: float = 40.0,
+        likes_charging_up_to: float = 50.0,
         patience_frames: int = 90,
         attack_cooldown_frames: int = 25,
+        groundpoint_exclusion_zone: float = 60.0,
+        max_target_x_offset: float = 250.0,
+        barrier_reaction_threshold: float = 200.0,
     ) -> None:
         self.aggressiveness_distance = aggressiveness_distance
         self.attack_frequency = attack_frequency
@@ -57,10 +63,22 @@ class SmeshBot(CharacterBrain):
         self.likes_charging_up_to = likes_charging_up_to
         self.patience_frames = patience_frames
         self.attack_cooldown_frames = attack_cooldown_frames
+        self.groundpoint_exclusion_zone = groundpoint_exclusion_zone
+        self.max_target_x_offset = max_target_x_offset
+        self.barrier_reaction_threshold = barrier_reaction_threshold
+
+        # Per-instance so groundpoint_exclusion_zone tunes how far ahead it checks for gaps.
+        self.SENSORS = (
+            RaycastSensor(name="ground_ahead", origin=(40.0, 0.0), direction=(0.0, -1.0), max_dist=groundpoint_exclusion_zone),
+            RaycastSensor(name="ground_below", origin=(0.0, 0.0), direction=(0.0, -1.0), max_dist=150.0),
+        )
 
         self._frame = 0
         self._cooldown = 0
         self._sweetspots: dict[int, float] = {}
+
+        self._target_offset = 0.0
+        self._target_offset_frame = 0
 
         self._charging = False
         self._charge_dir = (0.0, 0.0)
@@ -104,7 +122,14 @@ class SmeshBot(CharacterBrain):
 
         dx = target.x - context.x
         dy = target.y - context.y
-        self._pursue(context, dx, dy, out)
+
+        if self._frame - self._target_offset_frame >= self.patience_frames or self._target_offset_frame == 0:
+            self._target_offset = random.uniform(0.0, self.max_target_x_offset)
+            self._target_offset_frame = self._frame
+        facing_sign = 1.0 if target.facing >= 0 else -1.0
+        pursue_dx = (target.x + self._target_offset * facing_sign) - context.x
+
+        self._pursue(context, pursue_dx, dy, out)
 
         if self._cooldown == 0 and abs(dx) < self.aggressiveness_distance and abs(dy) < self.aggressiveness_distance:
             if random.random() < self.attack_frequency:
@@ -130,7 +155,9 @@ class SmeshBot(CharacterBrain):
             return True
 
         ground = context.sensors.get("ground_below")
-        if not self._recovery_used and context.in_air and context.vy < -2.0 and ground is not None and not ground.hit:
+        falling_near_bottom = context.y < -self.barrier_reaction_threshold
+        no_ground_below = ground is not None and not ground.hit
+        if not self._recovery_used and context.in_air and context.vy < -2.0 and (no_ground_below or falling_near_bottom):
             self._recovery_used = True
             out.clear()
             out.up = True
@@ -145,6 +172,13 @@ class SmeshBot(CharacterBrain):
     def _pursue(self, context: BrainContext, dx: float, dy: float, out: InputState) -> None:
         out.right = dx > 0
         out.left = dx <= 0
+
+        # Don't walk ourselves off the platform chasing the target (or a
+        # predictive offset that happens to point off-stage).
+        if out.left and context.x <= context.stage_platform_x1 + self.barrier_reaction_threshold:
+            out.left, out.right = False, True
+        elif out.right and context.x >= context.stage_platform_x2 - self.barrier_reaction_threshold:
+            out.right, out.left = False, True
 
         ahead = context.sensors.get("ground_ahead")
         if dy > 30.0:

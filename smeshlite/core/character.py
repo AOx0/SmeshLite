@@ -232,6 +232,8 @@ class Character:
             stage_x1=-stage.kill_x,
             stage_x2=stage.kill_x,
             stage_y_floor=stage.platforms[0].y if stage.platforms else 0.0,
+            stage_platform_x1=min((p.x1 for p in stage.platforms), default=-stage.kill_x),
+            stage_platform_x2=max((p.x2 for p in stage.platforms), default=stage.kill_x),
             sensors=self._sensor_results,
         )
 

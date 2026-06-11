@@ -89,6 +89,10 @@ class BrainContext:
     stage_x1: float = -700.0
     stage_x2: float = 700.0
     stage_y_floor: float = 0.0
+    # Combined X-extent of all platforms (i.e. the actual walkable footprint,
+    # as opposed to stage_x1/x2 which are the far-away kill-zone walls).
+    stage_platform_x1: float = -700.0
+    stage_platform_x2: float = 700.0
     # Sensors (only populated if the brain declares CharacterBrain.SENSORS)
     sensors: dict[str, RaycastResult] = field(default_factory=dict)
 

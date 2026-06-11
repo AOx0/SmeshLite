@@ -65,7 +65,7 @@ def test_no_opponents_does_nothing():
 # ---------------------------------------------------------------------------
 
 def test_pursues_opponent_to_the_right():
-    bot = SmeshBot(attack_frequency=0.0, jump_frequency=0.0)
+    bot = SmeshBot(attack_frequency=0.0, jump_frequency=0.0, max_target_x_offset=0.0)
     out = InputState()
     ctx = make_context(x=0.0, opponents=[make_opponent(x=200.0, y=0.0)])
     bot.think(ctx, out)
@@ -111,7 +111,7 @@ def test_retreats_from_respawning_opponent():
 # ---------------------------------------------------------------------------
 
 def test_fall_recovery_fires_once_then_latches():
-    bot = SmeshBot()
+    bot = SmeshBot(jump_frequency=0.0)
     falling_ctx = make_context(
         x=-400.0, y=200.0, vy=-5.0, in_air=True,
         opponents=[make_opponent()],
