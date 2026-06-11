@@ -86,6 +86,19 @@ class SmeshLiteEnv(gym.Env):
         for _ in range(1000):
             action = env.action_space.sample()
             obs, reward, terminated, truncated, info = env.step(action)
+
+    Info dict keys (returned by step):
+        frame:           match frame number
+        winner:          winner player_id or None
+        actions:         list of [left,right,up,attack] per player (env-injected)
+        applied_actions: list of [left,right,up,attack] per player (what brains chose)
+        damage_events:   list of {attacker, target, damage} dicts from this tick
+        action_masks:    list of [left,right,up,attack] booleans per player
+        obs:             list of obs arrays, one per player (each player's perspective)
+        rewards:         list of float, one per player (symmetric zero-sum)
+        damage:          list of damage_pct per player
+        stocks:          list of stocks per player
+        prev_obs:        obs array from the previous step (None after reset)
     """
 
     metadata = {"render_modes": ["none", "human", "rgb_array"]}
@@ -156,6 +169,7 @@ class SmeshLiteEnv(gym.Env):
 
         self._brains: list[ExternalBrain] = []
         self._renderer = None
+        self._last_obs: np.ndarray | None = None
 
     # ------------------------------------------------------------------
     # Gymnasium interface
@@ -200,7 +214,11 @@ class SmeshLiteEnv(gym.Env):
         self.match.tick()
 
         obs = self._get_obs()
-        info = {"frame": self.match.frame}
+        self._last_obs = obs
+        info = {
+            "frame": self.match.frame,
+            "prev_obs": None,  # no previous obs on first step
+        }
         return obs, info
 
     def step(
@@ -255,19 +273,44 @@ class SmeshLiteEnv(gym.Env):
         ]
 
         obs = self._get_obs()
-        reward = self._compute_reward(prev_dmg, prev_stocks)
+        rewards = self._compute_rewards(prev_dmg, prev_stocks)
         terminated = self.match.done
         truncated = False
 
+        # Primary reward: P0's reward (matches existing API)
+        reward = rewards[0]
+
         info.update({
+            # Existing
             "frame":     self.match.frame,
             "winner":    self.match.winner,
-            "p0_damage": self.match.characters[0].damage_pct,
-            "p0_stocks": self.match.characters[0].stocks,
+            "actions":        info["actions"],
+            "applied_actions": info["applied_actions"],
+            "damage_events":  info.get("damage_events", []),
+
+            # NEW: action masks (game logic)
+            "action_masks": [
+                self.match.characters[i].action_mask()
+                for i in range(self.n_players)
+            ],
+
+            # NEW: per-agent observations
+            "obs": [
+                self._get_obs(i) for i in range(self.n_players)
+            ],
+
+            # NEW: per-agent rewards (symmetric zero-sum)
+            "rewards": rewards,
+
+            # NEW: per-player stats (generalized)
+            "damage": [c.damage_pct for c in self.match.characters],
+            "stocks": [c.stocks for c in self.match.characters],
+
+            # NEW: prev obs for (s_t, a_t, s_{t+1}) recording
+            "prev_obs": self._last_obs,
         })
-        if self.n_players > 1:
-            info["p1_damage"] = self.match.characters[1].damage_pct
-            info["p1_stocks"] = self.match.characters[1].stocks
+
+        self._last_obs = obs
 
         if self.render_mode == "human":
             self.render()
@@ -289,39 +332,61 @@ class SmeshLiteEnv(gym.Env):
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _get_obs(self) -> np.ndarray:
+    def _get_obs(self, player_id: int = 0) -> np.ndarray:
+        """Return observation from the given player's perspective."""
         if self.obs_mode == "minimal":
             return np.array(
-                self.match.get_obs(perspective=0),
+                self.match.get_obs(perspective=player_id),
                 dtype=np.float32,
             )
         else:  # "full"
-            char = self.match.characters[0]
-            opponents = [c for c in self.match.characters if c.id != 0]
+            char = self.match.characters[player_id]
+            opponents = [c for c in self.match.characters if c.id != player_id]
             ctx = char._build_context(opponents, self.match.stage)
             return np.array(
                 brain_context_to_full_obs(ctx, self.max_sensors),
                 dtype=np.float32,
             )
 
-    def _compute_reward(
+    def _compute_rewards(
         self,
         prev_dmg: list[float],
         prev_stocks: list[float],
-    ) -> float:
-        reward = 0.0
+    ) -> list[float]:
+        """Compute reward for each player. Returns list of length n_players.
+
+        For 1v1 the rewards are symmetric zero-sum: P0's gain is P1's loss.
+        The engine provides raw computation; shaping is a training concern.
+        """
         chars = self.match.characters
+        rewards = []
 
-        if len(chars) > 1:
-            dmg_dealt = max(0.0, chars[1].damage_pct - prev_dmg[1])
-            reward += dmg_dealt * self._reward_cfg.get("dmg_scale", 0.01)
-            if chars[1].stocks < prev_stocks[1]:
-                reward += self._reward_cfg.get("ko_reward", 1.0)
+        for i in range(self.n_players):
+            r = 0.0
+            # Damage dealt to opponents (sum across all opponents)
+            for j in range(self.n_players):
+                if j == i:
+                    continue
+                dmg_dealt = max(0.0, chars[j].damage_pct - prev_dmg[j])
+                r += dmg_dealt * self._reward_cfg.get("dmg_scale", 0.01)
+                if chars[j].stocks < prev_stocks[j]:
+                    r += self._reward_cfg.get("ko_reward", 1.0)
 
-        if chars[0].stocks < prev_stocks[0]:
-            reward -= self._reward_cfg.get("death_penalty", 1.0)
+            # Damage received / death penalty
+            dmg_received = max(0.0, chars[i].damage_pct - prev_dmg[i])
+            r -= dmg_received * self._reward_cfg.get("dmg_received_scale", 0.01)
+            if chars[i].stocks < prev_stocks[i]:
+                r -= self._reward_cfg.get("death_penalty", 1.0)
 
-        return float(reward)
+            rewards.append(float(r))
+
+        # For 2 players, enforce strict zero-sum: r[1] = -r[0]
+        # This makes self-play mathematically consistent.
+        # The individual terms above are kept for clarity / n_players > 2 future use.
+        if self.n_players == 2:
+            rewards[1] = -rewards[0]
+
+        return rewards
 
     def _get_renderer(self):
         if self._renderer is None:

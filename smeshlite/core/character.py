@@ -714,6 +714,40 @@ class Character:
     def obs_size() -> int:
         return 11
 
+    # ------------------------------------------------------------------
+    # Action mask -- game logic for which actions have effect this frame
+    # ------------------------------------------------------------------
+
+    def action_mask(self) -> list[bool]:
+        """Return [left, right, up, attack] indicating which inputs have an effect.
+
+        The mask reflects "does this input have an effect?", not "is the
+        button press accepted?". Buttons are always accepted; the mask
+        tells a model which buttons *matter* this frame.
+
+        Rules:
+          - Movement (left/right) always accepted (DI during hitstun, drift
+            during attacks).
+          - up: effective on ground (jump), or airborne with recover unused
+            (uair recovery). No effect if airborne and recover already used.
+          - attack: blocked during DEAD, RESPAWN, HITSTUN, and active
+            ATTACK/SMASH frames. Allowed during CHARGING (releases the smash).
+        """
+        if self.action == Action.DEAD:
+            return [False, False, False, False]
+        if self.action == Action.RESPAWN:
+            return [True, True, False, False]
+        if self.action == Action.HITSTUN:
+            return [True, True, False, False]  # can DI but can't act
+        if self.action in (Action.ATTACK, Action.SMASH):
+            return [True, True, True, False]   # can drift + hold up (variable gravity), no new attack
+        if self.action == Action.CHARGING:
+            return [True, True, True, True]     # can release attack, drift, hold up
+        # NONE, RUN, JUMP, AERIAL
+        attack_ok = True
+        up_ok = not self.in_air or (self.in_air and not self.recover_used)
+        return [True, True, up_ok, attack_ok]
+
 
 # Module-level constants retained for use in tests.
 PHYS_HALF_W: float = MINIUM_DEF.get_body_hitbox().half_w
