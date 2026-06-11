@@ -613,6 +613,91 @@ class Character:
         return self._IDX_IDLE
 
     # ------------------------------------------------------------------
+    # State serialization
+    # ------------------------------------------------------------------
+
+    _STATE_KEYS: frozenset[str] = frozenset({
+        "player_id", "x", "y", "vx", "vy", "facing",
+        "action", "action_frame", "in_air", "recover_used",
+        "falling_through", "damage_pct", "stocks", "attack_num",
+        "charge_amount", "has_hit", "invincibility", "anim_frame",
+        "pending_damage", "pending_knockback_vx", "pending_knockback_vy",
+        "spawn_x", "spawn_y",
+    })
+
+    def get_state(self) -> dict:
+        """Return a JSON-serializable dict capturing the character's exact state.
+
+        Construction-time constants (id, _def, phys_half_w, phys_half_h) and
+        runtime caches (_sprite_loader, _sensor_results) are NOT included.
+        The brain reference is also excluded (it is a live Python object).
+        """
+        return {
+            "player_id": self.id,
+            "x": self.x,
+            "y": self.y,
+            "vx": self.vx,
+            "vy": self.vy,
+            "facing": self.facing,
+            "action": self.action.value,
+            "action_frame": self.action_frame,
+            "in_air": self.in_air,
+            "recover_used": self.recover_used,
+            "falling_through": self.falling_through,
+            "damage_pct": self.damage_pct,
+            "stocks": self.stocks,
+            "attack_num": self.attack_num,
+            "charge_amount": self.charge_amount,
+            "has_hit": self.has_hit,
+            "invincibility": self.invincibility,
+            "anim_frame": self.anim_frame,
+            "pending_damage": self._pending_damage,
+            "pending_knockback_vx": self._pending_knockback_vx,
+            "pending_knockback_vy": self._pending_knockback_vy,
+            "spawn_x": self._spawn_x,
+            "spawn_y": self._spawn_y,
+        }
+
+    def set_state(self, state: dict) -> None:
+        """Restore the character's state from a dict produced by get_state().
+
+        Validates required keys and player_id consistency.
+        Construction-time constants and the brain reference are NOT changed.
+        The input buffer is cleared (it will be overwritten next tick).
+        """
+        missing = self._STATE_KEYS - set(state)
+        if missing:
+            raise ValueError(f"Character.set_state: missing keys: {missing}")
+        if state["player_id"] != self.id:
+            raise ValueError(
+                f"player_id mismatch: state={state['player_id']}, self={self.id}"
+            )
+
+        self.x = state["x"]
+        self.y = state["y"]
+        self.vx = state["vx"]
+        self.vy = state["vy"]
+        self.facing = state["facing"]
+        self.action = Action(state["action"])
+        self.action_frame = state["action_frame"]
+        self.in_air = state["in_air"]
+        self.recover_used = state["recover_used"]
+        self.falling_through = state["falling_through"]
+        self.damage_pct = state["damage_pct"]
+        self.stocks = state["stocks"]
+        self.attack_num = state["attack_num"]
+        self.charge_amount = state["charge_amount"]
+        self.has_hit = state["has_hit"]
+        self.invincibility = state["invincibility"]
+        self.anim_frame = state["anim_frame"]
+        self._pending_damage = state["pending_damage"]
+        self._pending_knockback_vx = state["pending_knockback_vx"]
+        self._pending_knockback_vy = state["pending_knockback_vy"]
+        self._spawn_x = state["spawn_x"]
+        self._spawn_y = state["spawn_y"]
+        self._input.clear()
+
+    # ------------------------------------------------------------------
     # Observation vector
     # ------------------------------------------------------------------
 

@@ -117,6 +117,10 @@ class SmeshLiteEnv(gym.Env):
             char.set_brain(brain)
             self._brains.append(brain)
 
+        # Restore from state dict if provided via options
+        if options and "state" in options:
+            self.match.set_state(options["state"])
+
         # One idle tick to settle spawn
         self.match.tick()
 

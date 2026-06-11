@@ -156,6 +156,51 @@ class Match:
         return Character.obs_size() * n_players
 
     # ------------------------------------------------------------------
+    # State serialization
+    # ------------------------------------------------------------------
+
+    def get_state(self) -> dict:
+        """Return a JSON-serializable dict capturing the match's exact state.
+
+        The stage is NOT serialized (it is immutable, reconstructed from
+        MatchConfig). Character brain references are NOT serialized (they
+        are live Python objects).
+        """
+        return {
+            "frame": self.frame,
+            "done": self.done,
+            "winner": self.winner,
+            "characters": [c.get_state() for c in self.characters],
+            "config": {
+                "stocks": self.config.stocks,
+                "time_limit": self.config.time_limit,
+                "gravity_scale": self.config.gravity_scale,
+                "knockback_scale": self.config.knockback_scale,
+            },
+        }
+
+    def set_state(self, state: dict) -> None:
+        """Restore the match state from a dict produced by get_state().
+
+        Character count must match -- set_state does NOT rebuild characters
+        (that would lose brain assignments). Instead, it updates existing
+        Character instances in-place, preserving their brains.
+        """
+        self.frame = state["frame"]
+        self.done = state["done"]
+        self.winner = state["winner"]
+
+        char_states = state["characters"]
+        if len(char_states) != len(self.characters):
+            raise NotImplementedError(
+                f"Match.set_state: character count mismatch "
+                f"(state has {len(char_states)}, match has {len(self.characters)}). "
+                f"Rebuilding characters is not supported as it would lose brain assignments."
+            )
+        for char, cs in zip(self.characters, char_states):
+            char.set_state(cs)
+
+    # ------------------------------------------------------------------
     # Brain management
     # ------------------------------------------------------------------
 
