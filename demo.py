@@ -18,7 +18,7 @@ from smeshlite.core.brain import PlayerInput
 from smeshlite.render.renderer import Renderer, SCREEN_W, SCREEN_H
 
 # Importa tus agentes aquí
-from agents  import chaser_bot, random_bot, smesh_bot
+from agents  import chaser_bot, random_bot, smesh_bot, qtable_bot
 
 
 # Build match and wire PlayerInput brains
@@ -36,7 +36,15 @@ def demo_character_brains_config(match):
     #     key_attack=pygame.K_s,
     # ))
 
-    match.characters[0].set_brain(smesh_bot.SmeshBot())
+    match.characters[0].set_brain(
+        qtable_bot.QTableBot(q_table_path="agents/checkpoints/qtable_bot_roundrobin.json", epsilon=0.0)
+    )
+
+    match.characters[1].set_brain(
+        qtable_bot.QTableBot(q_table_path="agents/checkpoints/qtable_bot.json", epsilon=0.0)
+    )
+
+    # match.characters[1].set_brain(smesh_bot.SmeshBot())
 
     # Fijar cerebro del jugador 2 al input ARROW KEYS
     # match.characters[1].set_brain(PlayerInput(
@@ -50,7 +58,7 @@ def demo_character_brains_config(match):
     # match.characters[1].set_brain(random_bot.RandomBot())
 
     # Fijar cerebro del jugador a política de persecución simple
-    match.characters[1].set_brain(chaser_bot.ChaserBot())
+    # match.characters[1].set_brain(chaser_bot.ChaserBot())
 
 demo_character_brains_config(match)
 
