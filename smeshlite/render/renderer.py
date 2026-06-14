@@ -24,6 +24,9 @@ BG_COLOR         = (15,  15,  15)
 PLATFORM_COLOR   = (200, 200, 200)
 SEMISOLID_COLOR  = (120, 120, 120)
 PLAYER_COLORS    = [(240, 240, 240), (160, 160, 160), (100, 200, 100), (200, 100, 100)]
+# Per-player body tint applied to blue-dominant sprite pixels (#003cff).
+# None = keep original blue; set an RGB tuple to recolour the body.
+PLAYER_TINTS     = {0: None, 1: (255, 50, 0), 2: (0, 200, 80), 3: (200, 0, 255)}
 HUD_COLOR        = (200, 200, 200)
 HITBOX_COLOR     = (255, 60,  60)    # debug hitbox overlay (semi-transparent)
 SENSOR_HIT_COLOR = (255, 220, 60)    # sensor ray that hit something
@@ -49,6 +52,7 @@ class Renderer:
             self.screen = pygame.Surface((SCREEN_W, SCREEN_H))
         self.font = pygame.font.SysFont("monospace", 14)
         self.clock = pygame.time.Clock()
+        self._tinted_cache: dict = {}
 
         pass  # sprite loading is handled per-character via char.sprite_loader
 
@@ -95,6 +99,62 @@ class Renderer:
 
     # ------------------------------------------------------------------
 
+    def _tint_sprite(self, surface, tint_rgb: tuple[int, int, int]):
+        """Replace blue-dominant body pixels with *tint_rgb*, preserving shading.
+
+        The Minium character body uses fill="#003cff" (bright blue).
+        This method identifies those pixels by their high-blue / low-red
+        profile (B > 100, R < 100) and replaces the colour, scaling by
+        the original blue-channel luminance so that highlights and shadows
+        in the sprite are preserved.
+        """
+        import numpy as np
+        pg = self._pygame
+
+        surf = surface.copy()
+        arr = pg.surfarray.pixels3d(surf)           # (W, H, 3) uint8
+
+        blue_mask = (arr[:, :, 2] > 100) & (arr[:, :, 0] < 100)
+        lum = arr[blue_mask, 2].astype(np.float32) / 255.0
+
+        arr[blue_mask, 0] = np.clip(
+            tint_rgb[0] * lum, 0, 255
+        ).astype(np.uint8)
+        arr[blue_mask, 1] = np.clip(
+            tint_rgb[1] * lum, 0, 255
+        ).astype(np.uint8)
+        arr[blue_mask, 2] = np.clip(
+            tint_rgb[2] * lum, 0, 255
+        ).astype(np.uint8)
+
+        del arr          # release the surface lock
+        return surf
+
+    def _get_tinted_sprite(self, char, player_idx: int, costume_idx: int, flip: bool):
+        """Return a (possibly tinted) SpriteInfo, cached per (player, costume, flip)."""
+        from smeshlite.render.sprite_loader import SpriteInfo
+
+        key = (player_idx, costume_idx, flip)
+        if key in self._tinted_cache:
+            return self._tinted_cache[key]
+
+        info = char.sprite_loader.get_sprite(costume_idx, flip=flip)
+        tint = PLAYER_TINTS.get(player_idx)
+
+        if info is not None and tint is not None:
+            try:
+                tinted_surf = self._tint_sprite(info.surface, tint)
+                result = SpriteInfo(tinted_surf, info.anchor_x, info.anchor_y)
+            except Exception:
+                result = info          # fallback: no tint
+        else:
+            result = info
+
+        self._tinted_cache[key] = result
+        return result
+
+    # ------------------------------------------------------------------
+
     def _draw_character(self, screen, char, player_idx: int, sx: int, sy: int) -> None:
         from smeshlite.core.character import Action
         pg = self._pygame
@@ -102,7 +162,7 @@ class Renderer:
         costume_idx = char.get_current_costume_index()
         flip = (char.facing < 0)
 
-        info = char.sprite_loader.get_sprite(costume_idx, flip=flip)
+        info = self._get_tinted_sprite(char, player_idx, costume_idx, flip)
 
         if info is not None and char.action != Action.DEAD:
             # Blit: position sprite so rotation-center aligns with character origin
